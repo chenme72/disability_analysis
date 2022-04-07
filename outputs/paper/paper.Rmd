@@ -1,0 +1,99 @@
+---
+title: "How is Disability Different than Else from the respects of Employment and Income"
+subtitle: "Analysis of Canadian health and disability survey, 1984 - adults"
+author: Meixuan Chen
+thanks: "Code and data are available at: https://github.com/chenme72/disability_analysis.git"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+abstract: "There are about 6.2 million Canadians have at least one disability. This paper analyze the how does the disabilities affect their emplyment status and income by using multiple linear regression model. WHAT WE FOUND. It provides an insight of populations with disabilities, such that to achieve a more equal rights society. \\par
+ \\textbf{Keywords:} Health, Equal Rights, Employment Status"
+output:
+  bookdown::pdf_document2
+toc: FALSE
+bibliography: references.bib
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+```
+
+# Introduction
+```{r, include=FALSE}
+#You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance, Section \@ref(first-discussion-point). 
+```
+
+There are about 20% of the population in Canada is defined as disability [@citeCDS]. Equal opportunities for disability population is one of the most important fundamental of human rights. 
+\newline
+According to the Employment Equity Act, disability is defined as 'long term or recurring physical, mental, sensory, psychiatric, or learning impairment', and people with disability is someone who consider themselves to be disadvantaged in employment or believe their employer consider them to be disadvantaged in employment by reason of their impairment [@citeCDS]. 
+\newline
+In this paper, I aim to analysis the adults (who are older than 15 years old) disability population in Canada in 1980s. My research question is how does different types of disabilities affect their employments and income. 
+\newline
+I will use multiple linear regression model to test the relationship between the employment status with its influencing factors, such as difficulty of hearing, seeing, and other types of disability.  
+
+ADD SOME DETAILS OF WHAT I DID FROM THE ANALYSIS (ABOUT 3 MORE SENTENCES)
+\newline
+
+WHAT I FOUND IN THE ANALYSIS (1 PARAGRAPH)
+\newline
+
+This paper is divided into five sections. Section 1 is introduction that summaries the paper. Section 2 is the data section, which explains the variables that I analyze, the reproducible steps of data cleaning and data simulation, as well as the methodology of the survey. Section 3 shows the results from the analysis with figures and tables. Section 4 is the discussion section that analyze the findings in a more profound perspective. Last section is the appendix, which shows the supplementary figures from the analysis. 
+
+
+
+# Data
+
+
+
+```{r bills, include=FALSE,fig.cap="Bills of penguins", echo = FALSE}
+#Our data is of penguins (Figure \@ref(fig:bills)).
+#ggplot(penguins, aes(x = island, fill = species)) +
+#  geom_bar(alpha = 0.8) +
+#  scale_fill_manual(values = c("darkorange","purple","cyan4"),
+#                    guide = FALSE) +
+#  theme_minimal() +
+ # facet_wrap(~species, ncol = 1) +
+ # coord_flip()
+```
+
+
+
+# Model
+
+```{r, include=FALSE}
+#Equation \@ref(eq:bayes) seems useful, eh?
+```
+
+
+
+# Results
+
+# Discussion
+
+## First discussion point
+
+## Second discussion point
+
+## Third discussion point
+
+## Weaknesses and next steps
+
+
+
+\newpage
+
+\appendix
+
+# Appendix {-}
+
+
+# Additional details
+
+
+\newpage
+
+
+# References
+
+
