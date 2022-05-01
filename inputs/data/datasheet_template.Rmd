@@ -1,0 +1,1472 @@
+---
+title: "The Labour Force of Canadian Disabled Population"
+subtitle: "Analysis of Canadian health and disability survey, 1984 - adults"
+author: Meixuan Chen
+thanks: "Code and data are available at: https://github.com/chenme72/disability_analysis.git"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+abstract: "There are about 6.2 million Canadians who have at least one disability. This paper analyzes how disabilities, education level, class of work, and other factors affect employment status and income using multiple linear regression and logistic models. The analysis finds that income and education level positively influence the weekly working hours while other factors like the job classes negatively impact the weekly working hours. It provides an insight into populations with disabilities to achieve equal rights in society.
+ \\par
+ \\textbf{Keywords:} Disability, Health, Equal Rights, Employment, Working Hours, Labour Force"
+output:
+  bookdown::pdf_document2
+toc: TRUE
+bibliography: references copy.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(car)
+library(kableExtra)
+library(ggpubr)
+library(MASS)
+
+# install.packages("pointblank")
+library(pointblank)
+```
+
+\newpage
+# Introduction
+
+```{r, include=FALSE}
+#You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance, Section \@ref(first-discussion-point). 
+```
+
+About 20 percent of the population in Canada is defined as disability [@citeCDS]. 
+Equal job opportunities and salary levels for the disabled population are among the most important fundamentals of human rights. 
+According to the Employment Equity Act, disability is a long-term or recurring physical, mental, sensory, psychiatric, or learning impairment'. People with disability are those who consider themselves to be disadvantaged in employment or believe their employer consider them to be poor in career because of their impairment [@citeCDS]. 
+
+ This paper analyzes the labor force of disabled adults who were 15 years old or older in 1984. starting with a research question on how weekly working hours and income level are influenced by other factors such as disabilities, region, and education levels. 
+
+The data was collected in the Canadian Health and Disability Survey from 1983 to 1984 as a supplementary survey of the Canadian Labour Force Survey by the Canadian government, with almost 130,000 participants. This large sample size provides a unique and relatively accurate analysis for this paper. 
+
+By investigating the relationship between the weekly working hours and its influencing factors using a multiple linear regression model, the weekly working hours are positively influenced by gender and income and negatively affected by the class of work, province, and reasons that lose the work hours. By investigating the interactions between the variables, the average working hours per week of the disabled population is similar to others, which is around 40 hours per week. They have an equivalent income level as the population without disabled when they have university degrees. However, with an education level lower than a university degree, the disabled population generally has a lower income level than the general population. The disabilities are one of the most significant reasons reduce their working hours, which could also lead to a lower salary. The back musculoskeletal problem is one of the most common diseases that cause them to have lower productivity.
+
+The rest of the paper is divided into six sections: the data section, simulation section, model section, results section, discussion section, and the appendix. 
+The data section explains the variables that were analyzed, the reproducible steps of data cleaning and data simulation, as well as the methodology of the survey.
+The simulation section shows the comparison between the simulated data vs. origin data.
+The results section illustrates the results from the analysis with figures and tables. It mainly explores the relationship between the weekly working hours and the affecting factors found in the model section. 
+The discussion section analyzes the findings from the results section from a more profound perspective. In this section, the weakness and the potential improvement in the future are also discussed.  
+The last section is the appendix, which shows the supplementary figures from the analysis. It contains the additional residual plots for the linear model diagnostics. Also includes the additional figures that illustrate the interactions between variables.
+
+
+\newpage
+# Data
+
+```{r}
+raw_data <- read.csv(file = 'raw.csv')
+```
+
+## Data Source
+
+This paper uses the Canadian health and disability survey, 1983-1984 [@1] from the Canadian Health and Disability Survey (CDHS), which was conducted as a supplement to the Labour Force Survey (LFS) in October 1983 and in June 1984. The origin dataset was composed of adults file and children file. This analysis uses the adult file intending to study the affecting factors of work hours of the disabled population. 
+
+The dataset was collected on the CDHS questionnaire and contained 8 sections, which are 
+\newline
+- Section A: Screening
+\newline
+This section recorded the information on the types of conditions such as trouble walking 400 meters without resting, trouble moving from one room to another, difficulty getting in and out of bed, etc. 
+\newline
+- Section B: Follow-Up
+\newline
+This section recorded the follow-up information from Section A, such as the main and the second main health problems that cause trouble walking 400 meters without resting. 
+\newline
+- Section C: Nature of disability 
+\newline
+This section recorded the natural disabilities caused by the conditions in Section A, such as mental disorders, hearing disorders, lower limbs arthritis, etc.  
+- Section D: Employment 
+\newline
+This section describes the labor market-related information, such as conditions limiting working, special needs, employment status, etc. 
+\newline
+- Section E: Education 
+\newline
+This section recorded the education-related information for students and non-students. 
+\newline
+- Section F: Transportation  
+\newline
+This section recorded the transportation questions, such as if their transportation is private, special public services, local public services, etc.
+\newline
+- Section G: Accommodation 
+\newline
+This section collected the information for special features usage, such as access ramps, wide doorways, street entrances, etc. 
+\newline
+- Section H: Economic Characteristics
+\newline
+This section contains information about demographic, demographic, and socio-economic variables.
+
+R studio [@citeR] is used to process the analysis. The package 'tidyverse' is used for gathering data [@citetidyverse]. The package 'dpyr' is used to process the data [@citedpyr] and the package 'knitr' is also used for processing the data and knitting the pdf[@citeknitr]. The package 'ggplot'[@citeggplot] and 'ggpubr' [@citeggpubr] are used for marking statistical figures in the analysis. The package 'MASS' [@citemass] is used to make tables for the analysis. The package 'car' [@citecar] is used to do the stepwise selection in the logistic and linear regression model. Lastly, the package 'pointblank' is used to do the pointblank check for the simulation data. 
+
+## Methology
+### Canadian Health and Disability Survey Methology
+
+The Canadian Health and Disability Survey 1984 contains 788 variables for the 15,854 samples who were aged 15 and older [@citeCDS]. As a supplement to Labour Force Survey, it uses the same survey methodology as LFS.
+CHDS was collected in October 1983 and June 1984, and the response rate was around 90% [@2]. 
+
+The target population was populations in Canada who have one or more non-behavioral disabilities, knowledge acquisition, or other educational disabilities and people who suffer from chronic disease and degenerative nature that have a high chance of developing physical impairments. However, this dataset does not contain a population who are mentally ill. 
+
+The dataset was collected by using two-stage sampling. In the first stage, the dataset was collected by geographical regions, called primary sampling units. For each selected direct sampling unit, the statisticians draw up a list of dwellings. The screening section was processed in the first stage, which determines the target samples for the disability survey. 
+
+In the second stage, all of the residents of the dwellings make up the survey sample of persons. The samples selected by the screening section were followed up in the other survey, where section B (Follow-Up Section) was collected. 
+During the second stage, the samples participated in personal interviews, and the rest of the data was collected by the second questionnaire. 
+
+In conclusion, there are four questionnaires in total. The first survey was the Labour Force Survey, and the Screening Survey was developed in the first stage. Two other surveys with follow-up questions and more detailed questionnaires that were designed for Disability Designed were used in the second stage. 
+
+
+### Data Analysis Methology (Cleaning Steps)
+In this analysis, 11 variables are selected from the raw dataset, which are clswrkr, ind, tenure, prov, sex, age, educ, tothrswk, d09b,h03 and whyloss. 
+By using 'rename' function, some of the variable names are renamed with more representative names, for example, 
+clswrkr are named as 'class_of_work', 
+tothriswk are named as 'work_hrs_wk', 
+'h09b' are named as 'why_work_lim', 
+'h03' were named as 'income'.
+By using 'filter' function, the missing data and NA data were removed. 
+By using 'mutate' and 'casewhen' function, the data were changed from a numeric code into its represented information. For example, the variable sex contains values of '1' and '2', then value '1' are changed to 'male', value '2' are changed to 'female'. 
+
+```{r}
+clean_data <- raw_data %>%
+  dplyr::select(clswrkr, ind, tenure, prov, sex, age, educ, tothrswk, d09b,h03, whyloss) %>%
+  filter(clswrkr != 9, clswrkr != 8, clswrkr !=7,
+         ind != 99,
+         tenure != 0, tenure != 9,
+         tothrswk != 99,
+         whyloss !=9, whyloss !=0,
+         d09b != 0, d09b != 22,
+         h03 != 97, h03 != 8,h03 !=9
+         ) %>%
+   mutate(clswrkr = case_when(
+    clswrkr == 1 ~ 'Paid worker, private', 
+    clswrkr == 2 ~ 'Paid worker, govt business',
+    clswrkr == 3 ~ 'Paid worker, govt non-business',
+    clswrkr == 4 ~ 'Employer',
+    clswrkr == 5 ~ 'Own account',
+    clswrkr == 6 ~ 'Unpaid family worker')) %>%
+  mutate(ind = case_when(
+    ind == 1 ~ 'Agriculture', 
+    ind == 2 ~ 'Other primary',
+    ind == 3 ~ 'Manufacturing, non-durables',
+    ind == 4 ~ 'Manufacturing, durables',
+    ind == 5 ~ ' Construction',
+    ind == 6 ~ 'Transportation, etc.',
+    ind == 7 ~ 'Wholesale trade',
+    ind == 8 ~ 'Retail trade',
+    ind == 9 ~ 'Finance, etc.',
+    ind == 10 ~ 'Community services',
+    ind == 11 ~ 'Personal services',
+    ind == 12 ~ 'Business/misc. Services',
+    ind == 13 ~ 'Public administration',
+    ind == 14 ~ 'Never worked',
+    ind == 15 ~ 'Last worked 5+ years ago'
+  )) %>%
+  mutate(tenure = case_when(
+    tenure == 1 ~ '1-6 months', 
+    tenure == 2 ~ '7-12 months',
+    tenure == 3 ~ '1-5 years',
+    tenure == 4 ~ '6-10 years',
+    tenure == 5 ~ '11-20 years',
+    tenure == 6 ~ 'Over 20 years'
+  )) %>%
+  mutate(prov = case_when(
+    prov == 0 ~ 'NL',
+    prov == 1 ~ 'PE', 
+    prov == 2 ~ 'NS',
+    prov == 3 ~ 'NB',
+    prov == 4 ~ 'QC',
+    prov == 5 ~ 'ON',
+    prov == 6 ~ 'MB',
+    prov == 7 ~ 'SK',
+    prov == 8 ~ 'AB',
+    prov == 9 ~ 'BC'
+  )) %>%
+  mutate(sex = case_when(
+    sex == 1 ~'Male',
+    sex == 2~ 'Female'
+  )) %>%
+   mutate(age = case_when(
+    age == 1 ~ '15-19 years', 
+    age == 2 ~ '20-24 years',
+    age == 3 ~ '25-34 years',
+    age == 4 ~ '35-44 years',
+    age == 5 ~ '45-54 years',
+    age == 6 ~ '55-64 years',
+    age == 7 ~ '65-69 years',
+    age == 8 ~ ' 70-74 years',
+    age == 9 ~ '75-79 years',
+    age == 10 ~ '80-84 years',
+    age == 11 ~ '85+ years')) %>%
+  mutate(educ = case_when(
+    educ == 1 ~ 'None/Elementary',
+    educ == 2 ~ 'Some/Complete High School',
+    educ == 3 ~ 'Some post- secondary',
+    educ == 4 ~ 'Post-secondary cer/diploma',
+    educ == 5 ~ 'University Degree'
+  )) %>%
+  mutate(whyloss = case_when(
+    whyloss == 1 ~ 'Illness/disability/personal', 
+    whyloss == 2 ~ 'Bad weather',
+    whyloss == 3 ~ 'Labour dispute',
+    whyloss == 4 ~ 'Layoff',
+    whyloss == 5 ~ 'Lost job/new job',
+    whyloss == 6 ~ 'Vacation',
+    whyloss == 7 ~ 'Working short-time',
+    whyloss == 8 ~ 'Other'
+  ))%>%
+   mutate(d09b = case_when(
+    d09b == 1 ~ 'Mental disorders', 
+    d09b == 2 ~ 'Sight disorders',
+    d09b == 3 ~ 'Hearing disorders',
+    d09b == 4 ~ 'Other central nervous sys dis',
+    d09b == 5 ~ 'Ischaemic heart disease',
+    d09b == 6 ~ 'Other heart',
+    d09b == 7 ~ 'Other circulatory',
+    d09b == 8 ~ 'Emphysema/asthma',
+    d09b == 9 ~ 'Other respiratory',
+    d09b == 10 ~ 'Digestive system diseases',
+    d09b == 11 ~ 'Lower limbs arthritis/rheum',
+    d09b == 12 ~ 'Upper limbs arthritis/rheum',
+    d09b == 13 ~ 'Back arthritis/rheumatism',
+    d09b == 14 ~ 'Other/ns arthritis/rheumatism',
+    d09b == 15 ~ 'Lower limbs musculoskeletal',
+    d09b == 16 ~ ' Upper limbs musculoskeletal',
+    d09b == 17 ~ 'Back musculoskeletal problems',
+    d09b == 18 ~ 'Other/ns musculoskeletal probs',
+    d09b == 19 ~ 'Neoplasms',
+    d09b == 20 ~ 'Endocrine/nutritional etc.',
+    d09b == 21 ~ 'Other',
+    d09b == 22 ~ 'Unknown'
+    )) %>%
+  mutate(h03 = case_when(
+    h03 == 0 ~ 'None', 
+    h03 == 1 ~ '$1-4999',
+    h03 == 2 ~ '$5000-9999',
+    h03 == 3 ~ '$10000-14999',
+    h03 == 4 ~ '$15000-19999',
+    h03 == 5 ~ '$20000-24999',
+    h03 == 6 ~ '$25000-29999',
+    h03 == 7 ~ '$30000+',
+    h03 == 9 ~ 'Do not know '
+  )) %>%
+  rename(class_of_work = clswrkr,
+         work_hrs_wk = tothrswk,
+         why_work_lim = d09b,
+         income = h03) 
+```
+
+## Data Description 
+
+```{r table,echo=FALSE,message =FALSE, results='asis'}
+clean<- clean_data %>%
+  rename(cls_of_wrk = class_of_work, 
+         wrk_hrs = work_hrs_wk,
+         limitations = why_work_lim)
+#install.packages("kableExtra")
+
+kable(clean [1:5,], caption = "Clean Dataset") %>%
+  kable_styling(font_size = 7, full_width = T,position = "center", latex_options = "HOLD_position")
+```
+
+As \@ref(tab:table) shown, there are 11 variables in the cleaned dataset for this analysis.
+
+- cls_of_wrk: Represents the classes of work of participants and it has 6 values excluding the missing values, which are private paid worker, government business paid work, government non-business paid worker, employer, own account and unpaid family worker.
+
+- ind: Represents the industry that participants attended in 1984. It has 13 different industries, which are agriculture, other primary, non-durable manufacturing, durable manufacturing, construction transportation, wholesale trade, retail trade, finance,community services, personal services, business or misc. services and public administration. 
+
+- tenure: Represents the job tenures, which is separated in 6 month interval from 1 to 20 months, and over 20 years.
+
+- prov: It describes the 10 provinces in Canada, however, it does not contains information about Yukon, Northwest Territories and the population living on Indian Reserves. 
+
+- sex: It describes the gender of the particpants, male and female. 
+
+- age: It represents age groups, which are separated into 11 groups in a five year interval from age 15 to 85+.
+
+- educ: It describes the education level of the particpants, which are separated into five levels, which are none or elementary, some or completed high school, some post-secondary, post-secondary certificaion or diploma, and university degree. 
+
+- wrk_hrs: It is a numerical variable that describes the total usual hours worked per week. 
+
+- limitation: It describes the main health problem that causing act limitations at work and it is separated 20 different disorder, such as the sight disorder, endocrine, ischemic heart disease, etc. 
+
+- income: It describes the total income from all sources in the 1983 (past year) and it is separated into 8 groups in 5000 dollars interval from none to over 30,000 dollars. 
+
+- whyloss: It describes the reasons for time loss in the reference week. It is separated into 8 groups, such as bad weather, illness or disabilities, vacation, etc. 
+
+
+## Strengths
+
+The two stages of sampling can reduce the geographic spread of the sampled persons, which would increase the accuracy of the dataset. Additionally, collecting data from geographic balancing units avoids creating an extensive list of all addresses in Canada, which increases efficiency. 
+
+The sample size is large and unique because it is a supplementary survey of the Labour Force Survey, and it has the advantage that it covers people whether or not they are seeking medical care. 
+
+## Weakness
+
+The data might decrease accuracy since the survey is self-reported. Also, the survey mainly focuses on physical disabilities, such as being unable to walk over 400 meters. It lacks information about mental or psychological disabilities, such as necrosis or emotional disorders. Thus, the dataset could be biased by the definition of disabilities.
+
+Additionally, each question in the survey has a significant amount of missing values due to the 'not application' issue or the sensitivity questions, which cause the non-response value, especially in sections on education and transportation. However, this analysis avoids using the data from these two sections to increase accuracy. 
+
+
+\newpage
+## Key Features 
+
+```{r hrs, fig.cap = "Time spent at work by the respondent is mainly concentrated around forty hours" , echo = FALSE}
+#create graph
+ggplot(data=clean_data,aes(x=work_hrs_wk))+geom_histogram(xlab="Total usual hours worked per week",fill="#A6CEE3FF",color="black",alpha = 0.7, bins = 40) +
+  theme_classic() +
+  labs(x = "Total usual hours worked per week", y = "Amount of Respondents", title = "1984 CHDS Respondent's Working Hours per Week")
+```
+
+Figure \@ref(fig:hrs) depicts the distribution of the number of hours worked per week by the respondents. In the image, we find that the number of respondents who work 40 hours per week exceeds 300, and since this image shows an almost symmetrical distribution, we can speculate that the mean, median and plural of the respondents' weekly working hours are all close to 40. There are also a small proportion of respondents who work between 30 and 40 hours per week. However, the number of respondents with very short and very long working hours is very small. Overall, respondents work a relatively even number of hours, with the majority residing in the 40-hour range per week.
+
+\newpage
+```{r income, fig.cap = "Relatively few respondents had no income last year" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = income, fill = income)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Total income from all sources in the past year", y = "Amount of Respondents", title = "1984 CHDS respondent's Income Level",
+       fill = "income interval") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+```
+
+Figure \@ref(fig:income) demonstrates the distribution of respondents' salaries. We find that the income of respondents is quite uneven, with a large number of respondents in the low-income group (less than $10,000). For the segment with salaries over $10,000 but less than $30,000, we observe that the number of respondents decreases as the salary range rises. However, it is also observed that a large proportion of respondents earn more than $30,000. Only a small percentage of respondents do not have any income. In general, the majority of respondents were able to earn salaries through their work, but the level of income varied considerably among individuals, with the low-income group accounting for a large portion of the total, but there were also many high-income individuals as well.
+
+\newpage
+```{r classofwork, fig.cap = "Most of the respondents are paid workers of private companies" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = class_of_work, fill = class_of_work)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Class of worker ", y = "Amount of Respondents", title = "1984 CHDS Class of Work",
+       fill = "Class of worker") +scale_fill_brewer() +
+#  geom_text(aes(label = count(class_of_work)), vjust = -0.2)+
+   theme( axis.text.x = element_blank())
+```
+
+Figure \@ref(fig:classofwork) shows the distribution of the respondents by their job categories. We find that most of the respondents are paid workers, but they work for different organizations. Over 400 of the respondents are paid workers for private companies, which is much higher than the number of paid workers for government. We believe that this is related to the properties of government departments and private companies. For government agencies, regardless of whether they are business-related or not, their main intention is to serve the people. And government sectors are funded by the state, rather than profit-making enterprises, so they do not need that many employees. In contrast, private companies are mainly profit-oriented and recruit more paid workers to help them expand their businesses and gain more benefits. Therefore, we observe that the number of paid workers for private companies is the greatest. In addition, we found that a small number of respondents are employers or worked for their own accounts, and only very few of the respondents are unpaid family members.
+
+\newpage
+```{r ind, fig.cap = "The industries in which people with disabilities work are very diverse" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = ind, fill = ind)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Industry ", y = "Amount of Respondents", title = "1984 CHDS respondent's Industry",
+       fill = "Industry") +
+   theme( axis.text.x = element_blank())
+```
+
+In Figure \@ref(fig:ind), we can view the distribution of the work industries of the respondents, and we find that the fields in which people with disabilities are working are very diverse. The largest number of respondents chose the community service type of work. The workload associated with community service is not very heavy and it meets the needs of people with disabilities. In addition, it has the advantages of flexibility and proximity to home, accommodating the potential special requirements of people with disabilities due to their physical condition. Therefore, this type of work was preferred by respondents. In addition, we found that manufacturing, retail trade and transportation are also popular choices for disabled people. However, the number of respondents who chose to work in the financial industry was very small, with only 1/4 of the number of community workers. This is likely due to the fact that the work in the financial industry is more stressful and disabled people have difficulties in balancing their physical condition with the huge work overload.
+
+
+\newpage
+```{r tenure, fig.cap = "Very few respondents preferred short-term jobs" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = tenure, fill = tenure)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Job tenure ", y = "Amount of Respondents", title = "1984 CHDS respondent's Job Tenure",
+       fill = "Job tenure") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+```
+
+In Figure \@ref(fig:tenure), the distribution of the different job tenures of the respondents is observed. Through this graph, we notice that most of the respondents tend to work in a job for a relatively long time. Only very few respondents have been in their current job for a couple of months. The number of respondents who have stuck in their current job for 1-5 years accounts for the largest proportion. The number of respondents with 11-20 years of job tenure and 6-10 years of job tenure also has a significant weight among all. In case of people with disabilities, it is not so easy to find a suitable job because of their physical conditions, so they are more willing to stick to their favorite job for a very long time rather than changing jobs frequently.
+
+
+
+\newpage
+```{r a, fig.cap = "Respondents came from ten provinces in Canada, with varying numbers in each province. The amount of male respondents was much higher than that of the female respondents"}
+a1 <- ggplot(clean_data, aes(x = prov, fill = prov)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Province ", y = "Amount of Respondents", title = "1984 CHDS Region",
+       fill = "Province") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+
+#create graph
+a2 <- ggplot(clean_data, aes(x = sex, fill = sex)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Sex ", y = "Amount of Respondents", title = "1984 CHDS Gender",
+       fill = "Gender") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+
+ggarrange(a1,a2, labels = c("A","B"), ncol = 2, nrow = 1, widths = 1)
+```
+
+In Figure \@ref(fig:a) A, we identify the regions to which the different respondents belong. We know that there are ten provinces in Canada, and these respondents are from these ten different provinces. With over 150 respondents from Ontario, there were more respondents in Ontario than in any other province. The amount of participants from Newfoundland and Prince Edward Island was relatively low. Variations in the number of respondents are strongly related to the geographic distribution of the Canadian population. The total population of Canada is 35 million. The most populated province is Ontario, with 13 million people, followed by Quebec, with 8 million people. The provinces of New Brunswick, Newfoundland and Labrador, and Prince Edward Island, which account for one-third of Canada's landmass, are sparsely populated, which greatly reduces the population density of the country. We found that the number of respondents in each province is generally consistent with the distribution of the population in each province.
+
+Figure \@ref(fig:a) B organizes the distribution of the gender of the respondents. We find that the number of male respondents is more than 400, while the number of female respondents is less than 200. The number of males is much higher than the number of female respondents. However, according to our common sense, the number of males and females should exhibit the ratio of 1:1. The difference in the number of respondents by gender here leads us to infer that the number of males with disabilities is likely to be much higher than the number of females with disabilities.
+
+\newpage
+```{r age, fig.cap = "Very few of the respondents were minors" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = age, fill = age)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Age ", y = "Amount of Respondents", title = "1984 CHDS Respondent's Age Group",
+       fill = "Age group") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+
+
+```
+
+In Figure \@ref(fig:age), we see the age distribution among the respondents. The age groups from oldest to youngest are arranged in light to dark colors. We find that the number of underage respondents is very low, and more than 95% of the respondents are adults. The middle-aged and old-aged groups make up a significant portion of the total sample, as the number of respondents between 45 and 54 years old even exceeds 150, and the number of respondents between 55 and 54 years old is also around 150. The number of respondents whose age bracket was between 25 and 34 years old was about the same as the number of respondents whose age range was between 35 and 44 years old.
+
+
+\newpage
+```{r educ, fig.cap = "Respondents with a high school degree accounted for a very large percentage of all respondents" , echo = FALSE}
+#create graph
+ggplot(clean_data, aes(x = educ, fill = educ)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "Education level ", y = "Amount of Respondents", title = "1984 CHDS respondent's Education Level",
+       fill = "Education level") +scale_fill_brewer() +
+   theme( axis.text.x = element_blank())
+```
+
+Figure \@ref(fig:educ) presents us with the distribution of the educational level of the respondents. We identified that close to 200 respondents had no education or only a relatively elementary education. More than 300 respondents have received some or completely high school education. But only a very small number of people have received a university education. From this image we find that the distribution of the respondents' education is uneven. The combination of the large number of people with limited education and the extremely large amount of people with high school education makes us aware of the bifurcation of the population's awareness of education. The fact that a minority of the participants have received university education also reflects the relatively weak consciousness of the people to receive higher education
+
+
+
+\newpage
+```{r limitation, fig.cap = "Various factors lead to work limitations for respondents" , echo = FALSE}
+ggplot(clean_data, aes(x = why_work_lim, fill = why_work_lim)) + 
+  geom_bar(alpha = 0.7) + 
+  theme_classic() +
+  labs(x = "limitations", y = "Amount of Respondents", title = "1984 CHDS respondent's Disabled Limitation at Work",
+       fill = "causing act limitation at work") +
+   theme( axis.text.x = element_blank())
+
+```
+
+Figure \@ref(fig:limitation) shows the distribution of respondents' factors that lead to behavioral limitations at work. We realized that there are many causes for respondents' behavioral limitations at work. Back musculoskeletal problems were definitely the most serious problem respondents encountered at work. More than two hundred respondents reported that back musculoskeletal problems seriously affect their behavior at work. In addition, issues related to upper limbs musculoskeletal, lower limbs musculoskeletal, other heart, other arthritis/rheumatism and other musculoskeletal probs also brought behavioral distress to the work of many respondents.
+
+\newpage
+```{r whyloss, fig.cap = "Illness and vacation are the most popular reasons for respondent's time loss" , echo = FALSE}
+
+ggplot(clean_data, aes(x="", y= '', fill= whyloss)) +
+  geom_bar(stat="identity", width=1) + xlab("Reason for time loss in reference week") +ylab("Amount of Respondents")+ggtitle("1984 CHDS respondent's Reason for Time Loss")+coord_polar("y", start=0)  #theme(legend.text=element_text(size=7),legend.title = element_text(size = 6), plot.title = element_text(size = 9)) 
+```
+
+Figure \@ref(fig:whyloss) displays the reasons for people's time loss during the reference week. we can have an overview of seven reasons for people in terms of time loss, but the most popular one is vacation, followed by illness/disability/personal reasons. More than 400 people spend the longest time on vacation, which indicates that people are keen on leisure and recreational activities. The time loss of illness/disability/personal for many respondents indicates the inconvenience involved in the lives of people with disabilities, whose physical conditions can greatly affect their ability to work and live normally.
+
+
+\newpage
+# Simulation
+```{r, echo=FALSE}
+n <-  654
+set.seed(03)
+x_work_hours <- sample(1:8,size = n,replace = TRUE, prob = c(1/8,1/8,1/8,1/8,1/8,1/8,1/8,1/8))
+
+n <- 654
+set.seed(03)
+x_ind <- sample(1:13 ,size = n,replace = TRUE, prob = c(1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13,1/13))
+
+n <-  654
+set.seed(03)
+x_class_of_work <- sample(1:6,size = n,replace = TRUE, prob = c(1/6,1/6,1/6,1/6,1/6,1/6))
+
+n <-  654
+set.seed(03)
+x_tenure <- sample(1:6,size = n,replace = TRUE, prob = c(1/6,1/6,1/6,1/6,1/6,1/6))
+
+
+n <-  654
+set.seed(03)
+x_prov <- sample(1:10,size = n,replace = TRUE, prob = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+
+n <-  654
+set.seed(03)
+x_sex <- sample(1:2,size = n,replace = TRUE, prob = c(1/2,1/2))
+
+n <-  654
+set.seed(03)
+x_age <-sample(1:11,size = n,replace = TRUE, prob = c(1/11,1/11,1/11,1/11,1/11,1/11,1/11,1/11,1/11,1/11,1/11))
+
+n <-  654
+set.seed(03)
+x_educ <-sample(1:5,size = n,replace = TRUE, prob = c(1/5,1/5,1/5,1/5,1/5))
+
+n <-  654
+set.seed(03)
+x_why_lim <-sample(1:20,size = n,replace = TRUE, prob = c(1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20,1/20))
+
+n <-  654
+set.seed(03)
+x_income<-sample(1:8,size = n,replace = TRUE, prob = c(1/8,1/8,1/8,1/8,1/8,1/8,1/8,1/8))
+
+n <-  654
+set.seed(03)
+x_whyloss<-sample(1:8,size = n,replace = TRUE, prob = c(1/8,1/8,1/8,1/8,1/8,1/8,1/8,1/8))
+```
+
+
+
+```{r, echo=FALSE}
+#generate the dataset for the simulation data 
+df_simulation <- data.frame(Class_of_Work = x_class_of_work, Ind = x_ind, Tenure = x_tenure, Prov = x_prov, Sex = x_sex, Educ = x_educ, Age = x_age, Limitation = x_why_lim,Income = x_income, Whyloss = x_whyloss)
+#clean the simulation dataset
+#clean the education level variable
+df_simulation_clean <- df_simulation %>%
+  mutate(x_class_of_work= case_when(
+    x_class_of_work == 1 ~ 'Paid worker, private', 
+    x_class_of_work == 2 ~ 'Paid worker, govt business',
+    x_class_of_work == 3 ~ 'Paid worker, govt non-business',
+    x_class_of_work == 4 ~ 'Employer',
+    x_class_of_work == 5 ~ 'Own account',
+    x_class_of_work == 6 ~ 'Unpaid family worker')) %>%
+  mutate(x_ind = case_when(
+    x_ind == 1 ~ 'Agriculture', 
+    x_ind == 2 ~ 'Other primary',
+    x_ind == 3 ~ 'Manufacturing, non-durables',
+    x_ind == 4 ~ 'Manufacturing, durables',
+    x_ind == 5 ~ ' Construction',
+    x_ind == 6 ~ 'Transportation, etc.',
+    x_ind == 7 ~ 'Wholesale trade',
+    x_ind == 8 ~ 'Retail trade',
+    x_ind == 9 ~ 'Finance, etc.',
+    x_ind == 10 ~ 'Community services',
+    x_ind == 11 ~ 'Personal services',
+    x_ind == 12 ~ 'Business/misc. Services',
+    x_ind == 13 ~ 'Public administration'
+  )) %>%
+  mutate(x_tenure = case_when(
+    x_tenure == 1 ~ '1-6 months', 
+    x_tenure == 2 ~ '7-12 months',
+    x_tenure == 3 ~ '1-5 years',
+    x_tenure == 4 ~ '6-10 years',
+    x_tenure == 5 ~ '11-20 years',
+    x_tenure == 6 ~ 'Over 20 years'
+  )) %>%
+  mutate(x_prov = case_when(
+    x_prov == 10 ~ 'NL',
+    x_prov == 1 ~ 'PE', 
+    x_prov == 2 ~ 'NS',
+    x_prov == 3 ~ 'NB',
+    x_prov == 4 ~ 'QC',
+    x_prov == 5 ~ 'ON',
+    x_prov == 6 ~ 'MB',
+    x_prov == 7 ~ 'SK',
+    x_prov == 8 ~ 'AB',
+    x_prov == 9 ~ 'BC'
+  )) %>%
+  mutate(x_sex = case_when(
+    x_sex == 1 ~'Male',
+    x_sex == 2~ 'Female'
+  )) %>%
+   mutate(x_age = case_when(
+    x_age == 1 ~ '15-19 years', 
+    x_age == 2 ~ '20-24 years',
+    x_age == 3 ~ '25-34 years',
+    x_age == 4 ~ '35-44 years',
+    x_age == 5 ~ '45-54 years',
+    x_age == 6 ~ '55-64 years',
+    x_age == 7 ~ '65-69 years',
+    x_age == 8 ~ ' 70-74 years',
+    x_age == 9 ~ '75-79 years',
+    x_age == 10 ~ '80-84 years',
+    x_age == 11 ~ '85+ years')) %>%
+  mutate(x_educ = case_when(
+    x_educ == 1 ~ 'None/Elementary',
+    x_educ == 2 ~ 'Some/Complete High School',
+    x_educ == 3 ~ 'Some post- secondary',
+    x_educ == 4 ~ 'Post-secondary cer/diploma',
+    x_educ == 5 ~ 'University Degree'
+  )) %>%
+  mutate(x_whyloss = case_when(
+    x_whyloss == 1 ~ 'Illness/disability/personal', 
+    x_whyloss == 2 ~ 'Bad weather',
+    x_whyloss == 3 ~ 'Labour dispute',
+    x_whyloss == 4 ~ 'Layoff',
+    x_whyloss == 5 ~ 'Lost job/new job',
+    x_whyloss == 6 ~ 'Vacation',
+    x_whyloss == 7 ~ 'Working short-time',
+    x_whyloss == 8 ~ 'Other'
+  ))%>%
+   mutate(x_why_lim = case_when(
+    x_why_lim == 1 ~ 'Mental disorders', 
+    x_why_lim == 2 ~ 'Sight disorders',
+    x_why_lim == 3 ~ 'Hearing disorders',
+    x_why_lim == 4 ~ 'Other central nervous sys dis',
+    x_why_lim == 5 ~ 'Ischaemic heart disease',
+    x_why_lim == 6 ~ 'Other heart',
+    x_why_lim == 7 ~ 'Other circulatory',
+    x_why_lim == 8 ~ 'Emphysema/asthma',
+    x_why_lim == 9 ~ 'Other respiratory',
+    x_why_lim == 10 ~ 'Digestive system diseases',
+    x_why_lim == 11 ~ 'Lower limbs arthritis/rheum',
+    x_why_lim == 12 ~ 'Upper limbs arthritis/rheum',
+    x_why_lim == 13 ~ 'Back arthritis/rheumatism',
+    x_why_lim == 14 ~ 'Other/ns arthritis/rheumatism',
+    x_why_lim == 15 ~ 'Lower limbs musculoskeletal',
+    x_why_lim == 16 ~ ' Upper limbs musculoskeletal',
+    x_why_lim == 17 ~ 'Back musculoskeletal problems',
+    x_why_lim == 18 ~ 'Other/ns musculoskeletal probs',
+    x_why_lim == 19 ~ 'Neoplasms',
+    x_why_lim == 20 ~ 'Endocrine/nutritional etc.'
+    )) %>%
+  mutate(x_income = case_when(
+    x_income == 1 ~ 'None', 
+    x_income == 2 ~ '$1-4999',
+    x_income == 3 ~ '$5000-9999',
+    x_income == 4 ~ '$10000-14999',
+    x_income == 5 ~ '$15000-19999',
+    x_income == 6 ~ '$20000-24999',
+    x_income == 7 ~ '$25000-29999',
+    x_income == 8 ~ '$30000+'
+  ))
+
+write_csv(df_simulation_clean, "00-simulation.R")
+
+
+```
+
+
+```{r s1, echo=FALSE, fig.cap="Simulation vs. Origin Data"}
+par(mfrow=c(2,2))
+
+plot(table(x_class_of_work)/n,lwd=10,ylim=c(0,0.5),xlab="Class of Work",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(87/654, 117/654, 101/654,129/654, 110/654, 110/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "C. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+
+plot(table(x_ind)/n,lwd=10,ylim=c(0,0.6),xlab="Industry",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(47/654, 47/654, 57/654, 47/654, 62/654, 61/654, 52/654, 39/654, 49/654, 54/654, 38/654, 68/654, 33/654 ),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "B. Comparison of Simulated vs. Origin Residence"),  line = 1, cex.main = 0.5)
+
+plot(table(x_tenure)/n,lwd=10,ylim=c(0,0.6),xlab="Tenure",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(129/654, 110/654, 117/654, 89/654, 101/654, 110/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "C. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+plot(table(x_prov)/n,lwd=10,ylim=c(0,0.3),xlab="Province",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(59/654, 63/654, 43/654,70/654, 82/654, 58/654, 80/654, 59/654, 66/654, 74/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "D. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+
+```
+
+```{r}
+agent <-
+  create_agent(tbl = clean_data) %>%
+  col_is_character(columns = vars(class_of_work, ind, tenure, prov, sex, age, educ, why_work_lim, income, whyloss )) %>%
+  col_is_numeric(columns = vars(work_hrs_wk)) %>% interrogate()
+#agent
+```
+
+Figure \@ref(fig:s1) and Figure \@ref(fig:s2) in the appendix shows the comparison of simulated value and the actual values in the dataset for each of the variables.The blue line is the simulated data and the black line is the actual value for each of the variables.  Figure \@ref(fig:s1) is shown above as an example of the simulation data and most of the simulated values are very similar to the actual values. Additionally, by the pointblank check, alll of the variables are indicated as correctly simulated, such that the simulation data is relatively accurate.
+
+
+\newpage
+# Model
+## Logistic regression model
+
+Logistic regression is a regression model in which the response variable is a categorical variable. We usually evaluate the relationship between the categorical variable and the independent variable by using the logistic function as the probability estimation. In general, we apply logistic regression model to determine the likelihood of success of the dependent variable, as opposed to predicting the mean as in linear regression. In logistic regression, we set P to be the probability that an event will occur and 1-P to be the probability of the non-occurrence of that event. We are aware that the value of p is either 0 or 1, such as determining whether a person has a disease; if he or she has a disease, the probability that the patient has a disease is 1, and if not, the likelihood is 0. We use log(p/1-p) as the dependent variable to create a linear regression equation.
+
+Here our response variable is work_hrs_wk, which represents the number of hours the respondents work per week. By observation, we know that this is a numerical variable. For the case where the response variable is a quantitative variable, we should use linear regression model to predict the relationship between the response variables and the predictor. However, linear regression requires a linear relationship between the independent variable and the dependent variable, while logistic regression does not require a linear relationship between the independent variable and the dependent variable. Since we found that most of our predictors are categorical variables, whereas there may not be a linear relationship between the response variable and these predictors. Therefore, we also decided to try to use logistic regression model to explore this dataset.
+
+We applied the function summery to find out the distribution of the weekly working hours of the participants. We found that the mean and median of the weekly working hours of the respondents were around 40, therefore we set 40 hours as the cutoff, if the working hours of the respondents were less than or equal to 40, we defined their working hours as relatively short times, if the working hours of the respondents were is greater than 40 hours, we define his/her working time as a longer working period. We let p denote the probability of a longer working time of the respondent and created a logistic regression model based on this.
+
+
+
+```{r, include=FALSE}
+summary(clean_data )
+clean_data_new <- clean_data %>% mutate('work_hrs_wk' = case_when(work_hrs_wk <= '40' ~ 0,
+                                                               work_hrs_wk > '40' ~ 1 ))
+```
+
+
+```{r, include=FALSE}
+logisticmodel <- glm(work_hrs_wk ~ as.factor(class_of_work) + as.factor(ind) + as.factor(tenure) + as.factor(prov)  + as.factor(sex) + as.factor(age) + as.factor(educ) + as.factor(why_work_lim) + as.factor(income) + as.factor(whyloss), data = clean_data_new , family = "binomial")
+summary(logisticmodel)
+
+```
+
+If the p-value for a variable is less than the significance level, we have enough evidence to reject the null hypothesis for the entire population. It indicates that there is a non-zero correlation between our response variable and the predictor. Changes in the independent variable are associated with changes in the dependent variable at the population level. This variable is statistically significant and probably a worthwhile addition to our regression model. Based on the summary of our model, it is observed that the predictors class_of_work, sex, ind, age, educ and whyloss have relative small p-value. Therefore, we would include these significant predictors to form our predicted model. 
+
+
+\newpage
+### Table 2: Coefficients from the logistic regression model
+
+Variable names                                           | Estimate   | Std. Error.  | z value     | Pr>\|z\|
+--------------------------------------------------------|------------|--------------|-------------|------------------
+(Intercept)                                              | 3.74017    |1.55908   | 2.399 |0.016442 *  
+as.factor(class_of_work)Own account                      |-1.31992    |0.60401   |-2.185 |0.028870 *  
+as.factor(class_of_work)Paid worker, govt business       |-3.35863    |0.87384   |-3.844 |0.000121 ***
+as.factor(class_of_work)Paid worker, govt non-business   |-1.79158    |0.78626   |-2.279 |0.022690 *  
+as.factor(class_of_work)Paid worker, private             |-2.38876    |0.58912   |-4.055 |5.02e-05 ***
+as.factor(class_of_work)Unpaid family worker             |-1.57160    |0.97389   |-1.614 |0.106584    
+as.factor(sex)Male                                       | 1.11629    |0.32549   | 3.430 |0.000604 ***
+as.factor(age)20-24 years                                |-1.52203    |0.81218   |-1.874 |0.060929 .  
+as.factor(age)25-34 years                                |-1.66075    |0.73152   |-2.270 |0.023192 *  
+as.factor(age)35-44 years                                |-1.32258    |0.72861   |-1.815 |0.069493 .  
+as.factor(age)45-54 years                                |-1.55952    |0.73833   |-2.112 |0.034666 *  
+as.factor(age)55-64 years                                |-1.89481    |0.75640   |-2.505 |0.012244 *  
+as.factor(educ)Post-secondary cer/diploma                | 0.55063    |0.40820   | 1.349 |0.177361    
+as.factor(educ)Some post- secondary                      | 0.94719    |0.49780   | 1.903 |0.057072 .  
+as.factor(educ)Some/Complete High School                 | 0.11742    |0.28492   | 0.412 |0.680253    
+as.factor(educ)University Degree                         | 1.32780    |0.51085   | 2.599 |0.009345 ** 
+as.factor(whyloss)Illness/disability/personal            |-1.96810    |0.91059   |-2.161 |0.030668 *  
+as.factor(whyloss)Layoff                                 |-15.17739   |3956.18057|-0.004 |0.996939    
+as.factor(whyloss)Lost job/new job                       |-15.52471   |2786.63385|-0.006 |0.995555    
+as.factor(whyloss)Other                                  |-1.76389    |1.06135   |-1.662 |0.096527 .  
+as.factor(whyloss)Vacation                               |-2.06838    |0.91501   |-2.260 |0.023791 *  
+as.factor(whyloss)Working short-time                     |-1.49378    |1.39963   |-1.067 |0.285851    
+
+
+```{r, include=FALSE}
+logisticmodel_predicted <- glm(work_hrs_wk ~ as.factor(class_of_work) + as.factor(ind) + as.factor(sex) + as.factor(age) + as.factor(educ) + as.factor(whyloss), data = clean_data_new , family = "binomial")
+```
+
+
+```{r,echo = FALSE, include=FALSE}
+MASS::stepAIC(logisticmodel_predicted, direction = "both", k=2)
+```
+
+### Table 3: Stepwise Selection 
+
+Model                                                    | AIC   
+---------------------------------------------------------|-------
+$log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4X_{age}+\beta_5X_{educ}+\beta_6X_{whyloss}$|691.29
+$log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4 X_{age}+\beta_5 X_{educ}$|684.47
+$log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4 X_{educ}$|681.48
+
+
+### Table 4: Final Logistic Model 
+
+$log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4 X_{educ}$
+
+After getting the predicted model, we derive all predictors that are relatively significant. In order to continuously optimize our existing model, we choose to calculate the AIC of every subset of the predictors to avoid the situation of overfitting and underfitting. We would like to choose the model with smaller AIC. At the same time, we expect to use fewer predictors but to capture more signal. By operating the function stepAIC, we conduct several reduced models as well as their AIC. Among these, we find the model $log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4 X_{educ}$ has the smallest value of AIC and we would like to choose it as our final model.
+
+
+
+\newpage
+## Linear Regression Model
+After analysis from the logistic model, the variable class of work, industry, sex and education level are found as significant factors of weekly working hours. To investigate a deeper relationship between the weekly working hours and other factors, in this section, we use a multiple linear regression model to check if there are linear relationship between variables, weekly working hours (wrk_hrs) is defined as response variable, and the rest of the variables are considered as potential predictors. 
+
+The multiple linear regression model is a model that has more than one explanatory variable that has the general linear equation $Y=\beta_0+\beta_1X_{i1}+\beta_2X_{i2}+\beta_3X_{i3}+...+\beta_{ip}X_{ip}+e_i$ where p are the predictor variables, $\beta$ is the coefficient of each of the predictor variable. 
+
+We use backward selecting to select the predictors based on the p-value. If the predictor has p-value < 0.05, then it is the potential preductor. 
+
+There are four assumptions which are linearity, independence, constant variacne and normal distribution that need to be satisfied, in order to conduct a more accurate linear regression model with unbiased $\beta$ and minimum variance. These four assumptions can be checked by residual plots (the plot of estimation of population error) and quantile-quantile plot.
+There are also condition 1 and condition 2 to to be satisfied. 
+\newline
+Condition 1 represents the conditional mean response is a single function of a linear combination of the predictors. It can be checked by Y vs. $\hat{Y}$ plot.
+\newline
+Condition 2 indicates the conditional mean of each predictor is a linear function with another predictor, which can be checked by pairs plots for numerical predictors.
+
+### Model Procedures
+In order to conduct a linear regression model, it is necessary to follow the following steps to conduct an most accurate model.
+\newline
+Step 1: After summary the dataset and calculate the correlation, conduct QQ plot: It is for the assumption checks for linearity, independence, constant variance and normal distribution. 
+\newline
+Step 2: If QQ plot fits, then check condition 1 and 2
+          If QQ plot does not fit, then transform variables and repeat step 1. 
+\newline          
+Step 3: If condition 1 and 2 satisfied, then check residual plots. 
+        If condition 1 and 2 are not satisfied, then back to step 2 to transform variables.
+\newline
+Step 4: If residual plots does not have patterns, then check outliers/leverage points/influential points 
+        If residual plots have patterns, then remove the predictor that doesn't have valid residual plot and regenerate model. 
+
+Step 5: Access multi-colinearity by testing VIF.
+\newline
+Step 6: If VIF < 5, choose the bets fiited model as final model.
+        If VIF > or = 5, then delete the predictor that has possible multi-colinearity, then regenerate model. 
+\newline
+Step 7: Use variable selection to obtain the final model by checking AIC or partial F-test to obtain the final model. 
+
+
+\newpage
+### Model Process
+
+The initial model contains all of the variables from the cleaned dataset.So the initial linear model is 
+
+$Y=\beta_0+\beta_1X_{work classes}+\beta_2X_{ind}+\beta_3X_{tenure}+\beta_4X_{prov}+\beta_5X_{educ}+\beta_6X_{age}+\beta_7X_{sex}+\beta_8X_{limitation}+\beta_9X_{whyloss}+\beta_10X_{income}+e_i$
+
+Since all of the potential predictors are categorical, the boxplots were conducted for each of the potential variables to check if there are obvious relationship between the response varaible and each potential predictor. Figure \@ref(fig:eda) shows two examples of the boxplots that were conducted.Figure \@ref(fig:eda) A shows the boxplot for time loss reasons vs. weekly working hours and Figure \@ref(fig:eda)B shows the boxplot for class of work vs. weekly working hours. Notice that in Figure \@ref(fig:eda) B, the median of each variables have an obvious decreacing linear pattern, such that we can predict that the class of work propabaly is one of the predictor with the response variable. However, it is very hard to tell the correlation between the reponse variable with categorical predictors.
+
+
+```{r , include=FALSE}
+hist(clean_data$work_hrs_wk)
+hist(clean_data$work_hrs_wk^1.5)
+```
+
+
+```{r eda, fig.cap="Examples EDA boxplots for potential categorical predictors"}
+# final model predictor eda
+
+a4 <-clean_data%>%
+  ggplot(aes(y = work_hrs_wk, x = whyloss)) +
+  geom_boxplot()+
+  labs(x = "time loss reasons", y = "weekly work hours", title = "Time Loss Reasons vs. Weekly Working Hours")+theme_classic()+theme(axis.text.x = element_text(angle = 45, size = 6), title =element_text(size=8))
+
+a5 <- clean_data%>%
+  ggplot(aes(y = work_hrs_wk, x = class_of_work)) +
+  geom_boxplot()+
+  labs(x = "classes", y = "weekly work hours", title = "Class of Work vs. Weekly Working Hours")+theme_classic()+theme(axis.text.x = element_text(angle = 45, size = 6), title =element_text(size=8))
+
+plot <- ggarrange(a4,a5, labels = c("A","B"), ncol = 2, nrow = 1, widths = 1)
+plot
+```
+
+```{r, include=FALSE}
+
+### rest of EDA ---> appendix
+
+a1 <- clean_data%>%
+  ggplot(aes(y = work_hrs_wk, x = income)) +
+  geom_boxplot()+
+  labs(x = "income", y = "weekly work hours", title = "Income vs. Weekly Working Hours")+theme_classic()+theme(axis.text.x = element_text(angle = 45), title =element_text(size=5))
+
+a2 <- clean_data%>%
+  ggplot(aes(y = work_hrs_wk, x = prov)) +
+  geom_boxplot()+
+  labs(x = "province", y = "weekly work hours", title = "Province vs. Weekly Working Hours")+theme_classic()+theme(axis.text.x = element_text(angle = 45), title =element_text(size=5))
+
+a3 <- clean_data%>%
+  ggplot(aes(y = work_hrs_wk, x = sex)) +
+  geom_boxplot()+
+  labs(x = "Gender", y = "weekly work hours", title = "Gender vs. Weekly Working Hours")+theme_classic()+theme(axis.text.x = element_text(angle = 45), title =element_text(size=5))
+
+clean_data%>%
+  ggplot(aes(x = work_hrs_wk, y = ind)) +
+  geom_boxplot()+
+  labs(title = "industry")
+
+clean_data%>%
+  ggplot(aes(x = work_hrs_wk, y = tenure)) +
+  geom_boxplot()+
+  labs(title = "tenure")
+
+
+clean_data%>%
+  ggplot(aes(x = work_hrs_wk, y = age)) +
+  geom_boxplot()+
+  labs(title = "age")
+
+clean_data%>%
+  ggplot(aes(x = work_hrs_wk, y = educ)) +
+  geom_boxplot()+
+  labs(title = "education level")
+
+
+
+
+clean_data%>%
+  ggplot(aes(x = work_hrs_wk, y = why_work_lim)) +
+  geom_boxplot()+
+  labs(title = "reasons for work limitation")
+
+
+```
+
+
+My model process is from 
+\newline
+Full Model (initial model) -> Reduced model 1 -> Reduced model 2 (final model)
+\newline
+The assumptions were checked for each model following the procedure listed above. 
+
+
+```{r, include=FALSE}
+# 1. starting model 
+# missing work_lim
+m1 <- lm(work_hrs_wk ~ class_of_work+ind+tenure+prov+sex+age+ educ+why_work_lim+income+whyloss, data = clean_data)
+summary(m1)
+
+# 2. condition1 and condition2
+y_hat <- fitted(m1)
+y_i <- clean_data$work_hrs_wk
+plot(y_i, y_hat)
+
+# 3. use residual plot -> assumption violation
+res <- rstandard(m1)
+plot(y_hat, res)
+
+qqnorm(res)
+qqline(res)
+
+vif(m1)
+```
+
+\newpage
+#### Table 5: The significant variables from the FULL linear regression model 
+
+Variable names                                           | Estimate   | Std. Error.  | t value     | Pr>\|z\| |
+------------------------------------------|----------|-----------|----------|------------
+class of work: Own account                |    -10.19379 |   |2.42558 | -4.203| 3.06e-05 ***|
+class of work:Paid worker,govt business     |-11.08937    |2.71583  |-4.083 |5.07e-05 ***|
+class of work:Paid worker,govt non-business  |-9.44781   | 2.79592 | -3.379| 0.000776 ***|
+class of work:Paid worker,private            |-9.62730  |  2.25051 | -4.278| 2.21e-05 ***|
+class of work:Unpaid family worker           |-18.19073 |   3.88353|  -4.684| 3.51e-06 ***|
+ind:Agriculture                             |   4.08346    |2.25443|   1.811| 0.070612 .  |
+prov:BC                                      |  0.34356   | 1.78627 |  0.192| 0.847548    |
+prov:MB                                       |-3.78049  |  1.69850  |-2.226 |0.026413 *  |
+prov:PE                                       |-5.39687 |   3.08910 | -1.747 |0.081155 .  |
+prov:QC                                       |-3.51271 |   1.74001 | -2.019| 0.043970 *  |
+prov:SK                                       |-2.83705  |  1.58200 | -1.793 |0.073441 .  |
+sex:Male                                      | 2.33678 |   0.98116 |  2.382| 0.017557 *  |
+limitation:Lower limbs arthritis/rheum      | 5.80432    |3.49143 |  1.662 |0.096964 .  |
+limitation:Other circulatory                |-7.23095   | 3.16754 | -2.283| 0.022802 *  |
+income:$10000-14999                           | 2.50182  |  1.43811 |  1.740| 0.082450 . | 
+income:$30000+                                | 2.94451 |   1.61246  | 1.826 |0.068350 .  |
+whyloss:Other                                |-12.85149   | 4.29360 | -2.993 |0.002879 ** |
+
+There are 10 variables in the model excluding the response variable, work_hrs_wk. By checking the p-value, there are 7 significant variables, which are class of work, province, industry, sex, limitations, income and time loss reason, as shown in Table 5. 
+
+
+
+```{r}
+# model transformation 
+
+clean_data_trans <- clean_data %>%
+  mutate(work_hrs_wk_trans = work_hrs_wk^1.5)
+
+```
+
+```{r, include=FALSE}
+
+m2 <- lm(work_hrs_wk_trans ~ class_of_work+prov+ind+sex+why_work_lim+income+whyloss, data = clean_data_trans)
+summary(m2)
+vif(m2)
+
+```
+
+#### Table 6: The significant variables from the REDUCED linear regression model 1 
+
+Variable names                                           | Estimate   | Std. Error.  | t value     | Pr>\|z\| |
+------------------------------------------|------------|--------------|-------------|-------------
+(Intercept)                                 | 401.328    | 46.914  | 8.555  |< 2e-16 ***
+class_of_workOwn account                     |-93.078  |   22.193  |-4.194 |3.16e-05 ***
+class_of_workPaid worker, govt business   |  -107.325  |   24.716  |-4.342| 1.66e-05 ***
+class_of_workPaid worker, govt non-business|  -90.626   |  25.116 | -3.608 |0.000334 ***
+class_of_workPaid worker, private           | -93.727   |  20.485 | -4.575 |5.79e-06 ***
+class_of_workUnpaid family worker         |  -159.107   |  35.673 | -4.460| 9.80e-06 ***
+provMB                                     |  -36.882   |  15.510|  -2.378 |0.017729 *  
+provPE                                    |   -47.405   |  28.262 | -1.677 |0.094003 .  
+provQC                                     |  -32.967   |  15.805  |-2.086| 0.037417 *  
+provSK                                    |   -25.298   |  14.472  |-1.748 |0.080973 .  
+indAgriculture                             |   51.782   |  20.248  | 2.557 |0.010794 *  
+sexMale                                    |   23.364    |  8.665  | 2.696 |0.007212 ** 
+why_work_limLower limbs arthritis/rheum    |   55.690    | 31.864 |  1.748| 0.081021 .  
+why_work_limOther circulatory              |  -65.633    | 28.882  |-2.272 |0.023417 *  
+why_work_limOther/ns arthritis/rheumatism  |  -41.876    | 21.277  |-1.968 |0.049516 *  
+income$30000+                              |   23.929    | 13.907 |  1.721 |0.085823 .  
+whylossOther                                |-123.388   |  38.945  |-3.168 |0.001612 ** 
+
+From Table 6, there are 7 total variables in the reduced model 1, and all of the variables in reduced model 1 are significant, which is considered as a great redundancy in the reduced model 1. To obtain the best fitted model, AIC is used to select predictors by using the function 'stepAIC'
+
+```{r, include=FALSE}
+# recheck condition 1 and 2 and assumptions
+y_hat <- fitted(m2)
+y_i <- clean_data_trans$work_hrs_wk_trans
+plot(y_i, y_hat)
+
+res<- rstandard(m2)
+plot(y_hat,res)
+
+
+qqnorm(res)
+qqline(res)
+```
+
+#### Table 7: REDUCED linear regression model 2
+
+Model                                                                            | AIC 
+---------------------------------------------------------------------------------|-------
+${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4X_{ind}+\beta_5X_{income}+\beta_6X_{whyloss}+\beta_7X_{limitation}$|5834.05
+${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4X_{ind}+\beta_5X_{income}+\beta_6X_{whyloss}$|5815.75
+${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$|5807.44
+
+
+From Table 7, by comparing the AIC of each model, ${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$ has the smallest AIC, which is 5807.44. Thus, the best-fitted model by AIC selection is ${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$
+
+
+
+```{r,include=FALSE}
+stepAIC(m2, direction = "both", k=2)
+```
+
+\newpage
+## Final Model 
+ The following table shows the significant values of reduced model 2: ${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$.
+ 
+
+The last step is to use **partial F-test** evaluate the reduced model 2 is the better fitted model.
+\newline
+The null hypothesis is: 
+\newline
+H0: $\beta = 0$ for all of the variables exist in the reduced model 1 and missing in the reduced model 2
+\newline
+By conducting the anova, the p-value of the partial F-test is 0.3381, which is significantly larger than 0.05. It indicates failing to reject H0 and we can conclude that reduced model 2 is better than reduced model 1. 
+
+
+Model            |  #non-significant predictors    | Adjusted $R^2$ | RSE  | p-value|
+-----------------------|------------|--------------|-------------|------
+Reduced model 1 |1| 0.1339 | 82.76||
+Reduced model 2 |0 |0.1299 | 82.95|0.3381 |
+
+First of all, the p-value of the partial F-test is 0.3381, which is larger than 0.05 and it indicates that reduced model 2 is a better model. The adjusted $R^2$ indicates how does does the model explain the variance of the response variable (weekly working hours). The closer to 100%, the more appropriate the model is. From the above table, reduced model 1 has the adjusted $R^2$ of 13.39% and reduced model 2 has the adjusted $R^2$ of 12.99%, their adjusted $R^2$ are pretty close, however, the reduced model 1 slightly better explain the variance of the weekly working hours than reduced model 2. 
+\newline
+Additionally, reduced model 2 has none of the non-significant variable, which also support that reduced model 2 is a better model than reduced model 1. 
+Thus, reduced model 2 is the final model for the analysis and the following is the table of reduced model 2. 
+\newline
+The smaller residual standard error (RSE), then more accuracy of the model is. From the above table, reduced model 2 has smaller residual standard error, such that reduced model 2 has higher accuract. 
+\newline
+Thus, the final model is ${TransY}=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$
+\newline
+As the conclusion, the **reduced model 2 is the best fitted linear regression model**.
+
+
+```{r, include=FALSE}
+m3 <- lm(work_hrs_wk_trans ~ class_of_work + prov + sex + income + whyloss, data = clean_data_trans)
+
+anova(m2,m3)
+
+
+
+```
+
+
+```{r, include=FALSE}
+summary(m3)
+```
+
+\newpage
+## Final Model Diagnostics
+
+First, the residual plot is used to check if assumptions hold for reduced model 2, since reduced model 2 is the best-fitted model. 
+The assumptions hold if there is no discernible pattern seen in the residual plot. 
+
+```{r}
+par(mfrow = c(2,3))
+#plot(rstandard(m3)~fitted(m3), main = "Residual vs. Fitted", xlab = "Fitted", ylab = "Residuals")
+plot(m3,1)
+plot(m3,2)
+
+hist(clean_data$work_hrs_wk, main = "Origin Response Variable", xlab = "Weekly Working Hours")
+hist(clean_data_trans$work_hrs_wk_trans, main = "Transformed Response Variable", xlab = "Transformed Weekly Working Hours")
+
+y_hat <- fitted(m3)
+y_i <- clean_data_trans$work_hrs_wk_trans
+plot(y_i~ y_hat, main = "Y vs. Y hat plot", xlab = "Y hat", ylab = "Y")
+abline(a = 0, b= 1)
+lines(lowess(clean_data_trans$work_hrs_wk_trans~y_hat), Ity = 2)
+
+
+
+```
+
+The first graph is the residual vs. fitted value plot, which has no discernible patterns, which indicates that the popular errors have mean of zero, the errors of the fitted values are random and independent, also that the errors have constand spread around the conditional mean. 
+
+The second graph is the Normal Quantile-Quantile plot and it is used to test i the population errors are normally distributed. As shown above, the normal QQ plot is mostly on the line with minimal deviations at the ends.  
+
+On the second line, the first graph is the origin response varaible, which is not normally distributed, however, the final model has the trasformed Y, which is shown on the right graph on the second line. The histogram of the transformed Y is bell-shaped, symmetric and normally distributed, thus, the assumption of normal distribution is satified. 
+
+Ideally, Y should equals to $\hat{Y}$, the straight line on the Y vs. $\hat{Y}$ plot is $Y=\hat{Y}$, as the graph shown, the scatterplot mostly fits the line, such that condition 1 is satisfied, which indicates that there is single function of a linear combination of the predictor. 
+
+It's not applicable to check if this final linear regression model satisfies the condition 2, because condition 2 diagnostic requires pair comparison between numerical predictors, however, there is no numerical predictor in the final linear model.
+
+In Figure \@ref(fig:d1) in the appendix, there are five the residual vs. predictor plots, which corresponds to the five predictors in the final linear model. There is no discernible patterns for the first four plolts. For the categorical predictors, they all have equal length of lines, thus the assumptions hold. 
+
+However, for the residual vs. whyloss plot, the length of the lines are not equal, such that the assumption of constant variance is not satisfied for the predictor whyloss. This indicates that there is a violation in the assumption and the model is not accurate for the whyloss predictor. 
+
+
+\newpage
+## Final Model Interpretation
+By the above analysis of logistic model and linear regression model, the final logistic model is $log(\frac{\hat{p}}{1-\hat{p}})=\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{ind}+\beta_3 X_{sex}+\beta_4 X_{educ}$, which suggests that the weekly working hours is significantly affecting by class of work, industry, gender and education level. 
+
+By checking the residual plots, normal QQ plot Y vs. $\hat{Y}$ plot and condition 1 and condition 2, the final linear model mostly satisfies the assumptions, so I can conclude that the linear model mostly fits the dataset.
+
+The final linear model is ${TransY}\sim\beta_0+\beta_1 X_{class_-of_-work}+\beta_2 X_{sex}+\beta_3X_{prov}+\beta_4X_{income}+\beta_5X_{whyloss}$. 
+
+|Table of Final Linear Model| | | | |
+-------------------------------------------|------------|--------------|-------------|-------------
+ Variable names                                           | Estimate   | Std. Error.  | t value     | Pr>\|z\| |
+-------------------------------------------|------------|--------------|-------------|-------------
+(Intercept)                                 | 412.136   |  40.100 | 10.278 | < 2e-16 ***
+class_of_workOwn account                  |  -102.205   |  21.401 | -4.776 |2.23e-06 ***
+class_of_workPaid worker, govt business    | -126.840   |  22.074 | -5.746 |1.43e-08 ***
+class_of_workPaid worker, govt non-business |-117.688   |  20.730 | -5.677 |2.10e-08 ***
+class_of_workPaid worker, private           |-113.940   |  19.074  |-5.973| 3.90e-09 ***
+class_of_workUnpaid family worker         |  -151.251   |  34.668  |-4.363 |1.50e-05 ***
+provMB                                    |   -41.883   |  15.176 | -2.760| 0.005951 ** 
+provQC                                    |   -44.533   |  15.221 | -2.926| 0.003561 ** 
+provSK                                    |   -31.260   |  14.103 | -2.217 |0.027013 *  
+sexMale                                   |    31.669   |   7.620  | 4.156 |3.68e-05 ***
+income$10000-14999                         |   23.510  |   11.777  | 1.996 |0.046333 *  
+income$30000+                             |    26.320   |  12.926 |  2.036 |0.042154 *  
+whylossOther                              |  -128.874  |  37.113  |-3.473| 0.000551 ***
+
+
+By the table of final linear model above, 
+there are five predictors in the final model that has linear relationship with weekly working hours. 
+The predictor class of work has negative correlation with the response variable. When all other predictors held constant, as the proportion of class of work increase, then the weekly working hours decrease. Unpaid Family worker has the most negative effect on the response variable, its estimate is -151.251, indicates that when all other predictors held constant, as the proportion of **unpaid family worker** increase by 1, then the weekly working hour decrease by 15125.1%.
+
+The province also have negative correlation with the weekly working hour. Quebec has an estimate of -44.533, indicates that when all other predictor held constant, as the proportion of **Quebec** increase by 1, then the weekly working hours decrease by 4453.3%. 
+
+The other predictors could be interpreted by the same way. The gender **male** proportion has the positive correlation with the weekly working hours, the income level has mostly positive correlation with the response variable, while the income level of 5,000 dollars to 9,999 dollars has negative proportion with weekly working hours.  
+
+\newpage
+# Results
+## Work Hour vs. Income
+```{r r1, fig.cap= ' Work Hour vs. Income' }
+ clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=income, fill=income))+
+geom_density(adjust=1.5,alpha = 0.2) + facet_wrap(~income)+labs(x = "Hours/Week", y = "Density", title = "Weekly Work Hour vs. Income")
+```
+
+Figure \@ref(fig:r1) indicates the distribution of the number of hours worked per week for respondents with different salary levels. Similarly, we find that the majority of distributions tend to be symmetric, with peaks at 40 h. However, for those with salaries below $10,000, we find that the proportion of people working 40 h per week is relatively low, with a significant number of respondents working longer or shorter than 40 h per week. For the high-income group earning more than $20,000, the proportion of respondents working 40 hours per week decreases as the salary level increases.
+
+\newpage
+### Income vs. Class of Work
+
+```{r r2,fig.cap= ' Income vs. Class of Work'}
+clean_data %>%
+  ggplot(aes(x = income, fill = class_of_work))+
+  geom_bar(width = 0.5)+theme_classic()+theme(axis.text.x  = element_text(angle = 45, hjust = 1))
+  #scale_x_discrete(guide = guide_axis(n.dodge = 3))
+```
+
+Figure \@ref(fig:r2) shows that the public employees such as government paid workers have more proportion in the higher income level. However, private paid workers is the majority working type among all of the income levels.  
+
+\newpage
+### Weekly Work Hours vs. Reasons Losing Working Hours
+```{r r3,fig.cap= "Work Hours vs. Reason Lossing Job", warning=FALSE}
+
+clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=whyloss, fill=whyloss)) +
+geom_density(adjust=1.5,alpha = 0.2) + theme_classic()+ theme_classic() + labs(x = "Hours / Week", y = "Density", title = "Density Plot of Weekly Working Hours vs. Reasons of Lossing Job")+facet_wrap(~whyloss)
+```
+
+Figure  \@ref(fig:r3) portrays the distribution of the weekly working hours of the respondents with different reasons for time loss during the reference week. As can be noticed from the image, most of the respondents lost time in the aspects of
+Illness/disability/personal issues and vacations. Only very few of them spend a lot of time on bad weather, lost job/new job or working short-time. For those who lost time in Illness/disability/personal issues and vacation, the distribution of their working hours was basically symmetrical, with a concentration of 40 h. While there were fewer respondents who worked less than or more than 40 hours per week.
+
+\newpage
+### Work Hours vs. Reasons Limit Work Activity
+```{r r4, fig.cap='Work Hours vs. Reasons Limit Work Activity'}
+clean_data%>%
+ ggplot( aes(x=work_hrs_wk, color=why_work_lim, fill=why_work_lim)) +
+geom_density(adjust=1.5,alpha = 0.1, show.legend = F) + theme_classic()+labs(x = "Hours/Week", y = "Density", title = "Work Hours vs. Reasons Limit Work Activity")
+#+ facet_wrap(~why_work_lim)+geom_bar(show.legend = F)
+```
+
+Figure  \@ref(fig:r4) delineates the distribution of the number of hours worked per week by respondents who had behavioral limitations at work for different reasons. First of all, we found that most of respondents reported that they had experienced serious back musculoskeletal problems at work. In addition to this, other heart problems, 
+back arthritis/rheumatism and other musculoskeletal problems also caused great disturbance to the respondents' work status. We found that most of the distribution of working hours had a symmetrical shape, with the majority of respondents working approximately 40 hours per week. For the respondents who reported that Back arthritis/rheumatism affected their work status, we found two peaks in the distribution of hours worked, one at 35 hours and the other at 60 hours.
+
+\newpage
+## Weekly Work Hours vs. Class of Work with Different Genders
+
+```{r r5, fig.cap='Weekly Work Hours vs. Class of Work with Different Genders', warning=FALSE}
+# class of work vs. work hours and sex
+clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=class_of_work, fill=class_of_work)) +
+   geom_histogram(alpha=0.6, binwidth = 5) +
+   theme(
+   legend.position="none",
+     panel.spacing = unit(0.1, "lines"),
+     strip.text.x = element_text(size = 8))+
+  labs(x="Hours/Week", y="Number of respondents", title = "Weekly Working Hours vs. Classes of Work")+
+  facet_wrap(~sex)+ theme_classic()
+```
+
+Figure  \@ref(fig:r5) depicts the working hours of respondents of different genders, and we use different colors to classify the types of work of these respondents. First, by the difference in the height of the bar chart, we discovered that there is a huge difference in the total number of males and females, but most male and female respondents work around 40 hours per week. The amount of female respondents working less than 40 hours is larger than that of male respondents. Among the male respondents, a fraction of them works more than 40 hours, which is not seen in the trend of female respondents' working hours. Overall, although the majority of male respondents and female respondents work 40 hours per week, the average number of hours worked by men is longer than that of women, men seem to prefer to work for longer periods of time. A slightly larger proportion of female respondents work in the private sector than males, while more male respondents work in government than females. Both male and female work hours are close to symmetrical distribution.
+
+\newpage
+### Work Hours Per Week vs. Industry
+```{r r6, fig.cap=" Work Hours Per Week vs. Industry"}
+
+clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=ind, fill=ind)) +
+geom_density(adjust=1.5,alpha = 0.1, show.legend = F) +facet_wrap(~ind)+labs(x = "Hours/Week", y = "Density", title = "Work Hours Per Week vs. Industry")
+```
+
+Figure \@ref(fig:r6) exhibits to us the weekly working hours of the respondents from different industries, and we reveal a symmetrical shape of working hours for almost all industries. For respondents in most industries, the working hours are mainly concentrated around 40 hours. The proportion of respondents working less than 40 hours is slightly higher in manufacturing than that in other industries. In each industry, very few respondents chose to work more than 40 hours or less than 40 hours. Moreover, a straight pattern was found for those working in agriculture, indicating that the working hours of respondents working in agriculture are more even.
+
+\newpage
+###  Income vs. Tenure
+
+```{r r7, fig.cap=' tenure and income'}
+# tenure and income
+clean_data%>%
+  ggplot( aes(x=income, color=tenure, fill=tenure)) +
+   geom_bar(alpha=0.6, binwidth = 5) +
+   theme(title = 'Income vs. Job Tenure',
+   legend.position="none",
+     panel.spacing = unit(0.1, "lines"),
+     strip.text.x = element_text(size = 8))+
+xlab("") +
+ylab("Number of respondents")+theme_classic()+theme(axis.text.x = element_text(angle = 45))
+
+```
+
+In Figure \@ref(fig:r7), there is an increasing of over 20 years tenure and decreasing trend of tenure that less than a year with higher income level. This could represents that participants in CHDS have higher salary with longer job tenures and the higher job satisfaction, verse vice.
+
+
+
+\newpage
+## Weekly Work Hours vs. Education
+```{r r8, fig.cap='Weekly Work Hours vs. Education Level'}
+clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=educ, fill=educ)) +
+   geom_histogram(alpha=0.6, binwidth = 5) +
+   theme(
+   legend.position="none",
+     panel.spacing = unit(0.1, "lines"),
+     strip.text.x = element_text(size = 8))+ 
+  labs(x = "Hours per Week", y = "Number of Respondents", title = "Histogram of Weekly Working Hours vs. Age Group & Education Level") +  facet_wrap(~age)+theme_classic()
+ 
+```
+
+Figure  \@ref(fig:r8) depicts the working hours of respondents in different age groups, and we use different colored sections to identify the percentage of respondents in each education level. The first thing we can remark is that only a very small number of respondents are minors. The proportion of relatively young individuals who received high school education is significantly higher than that of the older residents. Younger people are more inclined to receive higher level of education. Among the older age group, the share of those who had only primary education was very high. The number of hours worked by respondents of different age groups is generally concentrated around 40 hours. The majority of people who work very long hours each week have not received any education or have received only primary education.
+
+\newpage
+### Income vs. Education Level
+
+```{r a3, fig.cap= 'Higher education level lead to a higher income level'}
+clean_data %>%
+  ggplot(aes(x = income, fill = educ))+
+  geom_bar()+theme_classic()+
+scale_x_discrete(guide = guide_axis(n.dodge = 1))+theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+```
+
+In Figure \@ref(fig:a3), the purple section indicates paritipants who complete university degree, as Figure \@ref(fig:a3) shown, there are more proportion of participants who complete university degrees in a higher income level. In the income level of 5,000 to 9,999 dollars, there doesn't have participants who complete university degree. 
+
+Also, higher income level generally have less proportion of particpants who have none or elementary degrees, which indicates that higher education level probably have higher salary in the disabled population. 
+
+
+\newpage
+### Weekly Work Hours vs. Provinces
+
+```{r r9, fig.cap='Weekly Work Hours  vs. Province'}
+# province vs. work hours
+clean_data %>%
+  ggplot( aes(x=work_hrs_wk, color=prov, fill=prov)) +
+   geom_histogram(alpha=0.6, binwidth = 5) +
+   theme(
+   legend.position="none",
+     panel.spacing = unit(0.1, "lines"),
+     strip.text.x = element_text(size = 8)) +
+labs(title = "Histogram of Weekly Work Hours  vs. Province")+
+xlab("Hours/Week") +
+ylab("Number of respondents")+ facet_wrap(~prov)
+
+```
+
+Figure \@ref(fig:r9) portrays the hours worked by people in different provinces. Based on the height of the bins, we realize that there were the most respondents in Ontario, while Prince Edward Island had the fewest respondents. The number of hours worked by respondents in each province tends to be symmetrically distributed, with most people working 40 hours per week. However, we found that Ontario had the highest number of respondents working more than 40 hours. We hypothesize that this may be related to the fact that Ontario itself has a larger population, and the denser population brings more competition for work, forcing people to work longer hours to boost their work output. In New Brunswick, Newfoundland and Labrador, and Nova Scotia, the distribution of hours worked is more concentrated, with few people working more than 40 hours or less than 40 hours.
+
+
+\newpage
+### Weekly Work Hours vs. Tenure
+```{r r10, fig.cap= 'Work Hours vs. Tenure'}
+
+
+clean_data%>%
+  ggplot( aes(x=work_hrs_wk, color=tenure, fill=tenure)) +
+geom_density(adjust=1.5,alpha = 0.2) + theme_classic()+ facet_wrap(~tenure)+xlab("Hours/Week") +
+ylab("Number of respondents")+facet_wrap(~tenure)+labs(title = "Work Hours vs. Tenure")
+```
+
+
+Figure \@ref(fig:r10) indicates the weekly working hours of the respondents with different tenures. We find that for the respondents with different tenures, their working hours are mainly concentrated in 40 hours, and the distribution of working hours is generally symmetrical. Especially for respondents who have worked for 6-10 years, almost none of them work much more than 40 hours or much less than 40 hours. However, for respondents who have only been working for 1-6 months, the distribution of working hours is more volatile, with a significant proportion working less than 40 hours. We speculate that this may be because employees who have just joined the company still need a period of adaptation to accept normal intensity of work. We found that when tenure exceeded 6 years, the proportion of respondents who worked 40 hours per week tended to stabilize at about 0.2.
+
+
+
+
+
+
+
+\newpage
+# Discussion
+
+## Weekly Work Hours, Income and disability 
+
+The working hours does not have linearly effects on the income level. In the linear regression model, income level from 10,000 dollars to 14,999 dollars and income level over 30,000 dollars have positive linear correlation with the weekly working hours, which indicates that the proportion of disabled population who earn over 10,000 dollars per year would have higher weekly working hours. By Figure \@ref(fig:r1), people who earned 20,000 dollars to 24,999 dollars have highest density around 40 hours per week. Most of the participants have weekly working hours around 40 and does not deviate a lot from that, thus the difference in salary can be resulted by different hourly wage. 
+
+People with higher hourly wage could earn more salary with less working hours. The hourly wage can be influenced by the types of disabilities, class of work and education levels [@2017LFS], which will be discussed in the following few sections. In this section, how does disability affect weekly hours and income level is discussed. 
+
+To analyze how does the disability affect weekly hours, by Figure \@ref(fig:whyloss), disability problem is the second largest reason why participants lose working hours, which can cause a decrease in their salary. Due to the different types of the disabilities, such that their marginal productivity of labor decreases, which could lead to the lower salary than the normal population. By the Figure \@ref(fig:limitation), most of the disabled population were affected by back musculoskeletal problems. Back musculoskeletal problems produce neck and back pain that can cause people having trouble sitting for a long time or moving heavy objects. However, these specific diseases are not one of the predictors in the linear regression model nor logistic model, so it is reasonable to predict that back musculoskeletal problem does not significantly affect working hours.
+
+
+
+## Weekly Work Hours, Class of Work
+
+Weekly work hours and income level are closely related to class of work. There are five different kinds of class of work in the dataset, which are own account, paid worker in government business, paid worker in government non-business, unpaid family worker and paid private worker. By Figure \@ref(fig:r5), the proportion of private paid worker is the highest, and the proportion of employers is the lowest.
+
+By the 2017 Labour Force Survey [@2017LFS], there were about 20% public sector employees and 64.7% of private sector employees, 15.1% of self employed workers and 1.35% of unpaid family workers. The Labour Force Survey aims for the whole Canadian Employee Population, which is very similar to the results with the disability population in 1984, so the disability does not make people have higher chance to be a housewife or a stay-at-home-dad.
+The average working hour per week for full time employment in Canada is 40 hours per week [@2017LFS], it also indicates that the Canadian population has similar working hours with the disabled population. 
+The results reflect that the disabled population have very similar working hours and classes of work to the general population.
+
+By Canadian Center for Policy Alternatives, people earn around 5% more in the public-sector jobs than working in the private sector [@citeincome], such that, people who were paid government workers could have higher wage than the private workers when they have the same weekly working hours. By Figure \@ref(fig:r2), the proportion of private paid worker is the highest, however, the income level higher than 25,000 dollars has generally lower proportion of private paid worker and the proportion of paid government business worker increase. 
+
+By the results in both of the logistic model and linear regression model, class of work is an important predictor that affects weekly working hours of disability population in Canada in 1984. The linear regression model shows that class of work has negative linear correlation between the weekly working hours, in the other words, when all other predictors hold constant, the smaller proportion of the class of work is, the larger of the weekly working hour is. This can be caused by the needs to complete the same amount of work, but with less human resources, which also leads to the increase of average working hours. 
+
+
+
+
+ 
+## Weekly Work Hours, Education Level and Tenure
+
+Figure \@ref(fig:a3) shows that the higher income level comes with higher proportion of university degree. By the previous article from Statistics Canada, disabilities would have similar employment rate to the general population, however, the disabilities who have education level lower than university degree would have lower employment rate than the population without disability [@employment]. The analysis results from Statistic Canada also support the finding from this analysis. 
+Thus, a disabled individual can have higher income level after they complete a university degree. 
+
+The job tenure generally reflects the job satisfaction [@tenure]. 
+By Figure \@ref(fig:r10), population who have tenure of 6-20 years have the highest proportion working around 40 hours per week, in the contrary, the participants have less working hours when their tenure is less than 6 years. This indicates that disabled population tend to work more hours when they have a stable job, i.e. When their job tenure is over 5 years. 
+
+By Figure \@ref(fig:r7), as the income level gets higher, the longer tenure tends to take a larger proportion, the most obvious is over 20 years tenure. On the contrary, the shorter tenure tends to take a shorter proportion, and the most obvious is the 1-6 month tenure. Thus, the disabled population generally could have higher income with higher job satisfaction. 
+
+
+```{r, include=FALSE}
+#By the previous article from Suji Priya, they used ANOVA analysis found that there is strong relationship among job tenure, gross salary and gender of employees working in an organization. 
+```
+
+
+
+## Limitation
+
+The limitation of linear regression model:
+The predictor whyloss has some violation of assumption checking the residual plot, shown by the residual plot, the length of the line in the whyloss vs. residual plot are not equal length, then one of linearity, constant variance or independence might not hold. Thus, the linear regression model might not be the most fitted model. 
+
+Since all of the predictors are categorical variables, it is hard to use statistical models to analysis the relationship between weekly working hours and its affecting factors, the use of the linear model is lack of accuracy, the residual standard error (RSE) of the final model is very large, which indicates that the accuracy of the final linear regression model is moderate and it is not the best model that represents the dataset. 
+
+
+
+
+## Future Improvement
+
+Due to the limitation of the learning, this analysis is limited by two models, logistic model and linear regression model. The scientists can develop another model that can fits the dataset better, such that increasing the accuracy of the model to analysis the relationship between the weekly working hours of disability population and its other affecting factors, such as binomial model, etc.
+
+The survey could also contains questions that determine the serverity of the disabilities, such that to make the analysis of the severity of the disabilities vs. labour force much easier. 
+
+
+
+\newpage
+# Appendix {-}
+## Simulation vs. Origin Data
+```{r s2, fig.cap="Simulation vs. Origin Data"}
+par(mfrow=c(3,3))
+plot(table(x_sex)/n,lwd=10,ylim=c(0,0.9),xlab="Gender",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(87/317, 117/337),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "E. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+plot(table(x_age)/n,lwd=10,ylim=c(0,0.2),xlab="age group",ylab="Density", cex.axis = 0.5,cex.lab = 0.5)
+lines(c(72/654, 55/654, 46/654, 66/654, 65/654, 75/654, 47/654, 46/654, 47/654, 62/654, 73/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "F. Comparison of Simulation vs. Origin Age Group"),  line = 1, cex.main = 0.5)
+
+plot(table(x_educ)/n,lwd=10,ylim=c(0,0.6),xlab="education level",ylab="Density", cex.axis=0.5, cex.lab = 0.5)
+lines(c(141/654, 117/654, 146/654, 128/654, 122/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "G. Comparison of Simulation vs. Origin Education level"),  line = 1, cex.main = 0.5)
+
+plot(table(x_why_lim)/n,lwd=10,ylim=c(0,0.2),xlab="Limitation",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(28/654, 43/654, 35/654,23/654, 50/654, 29/654, 33/654, 40/654, 20/654, 27/654, 30/654, 39/654, 30/654, 35/654, 31/654, 30/654, 32/654, 43/654, 35/654, 31/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "H. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+
+
+plot(table(x_income)/n,lwd=10,ylim=c(0,0.2),xlab="Income",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(81/654, 100/654, 58/654, 92/654, 69/654, 94/654, 78/654, 82/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "I. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+
+
+
+
+plot(table(x_whyloss)/n,lwd=10,ylim=c(0,0.2),xlab="Reasons Lose Work Hours",ylab="Density", cex.axis = 0.5, cex.lab = 0.5)
+lines(c(81/654, 82/654, 78/654,100/654, 58/654, 94/654, 92/654, 69/654),lwd=4,type = "h",col="sky blue")
+legend("topright",c("Empirical pdf","pdf"),lty = 1,col = c(1,"sky blue"),lwd = c(5,2), cex = 0.5)
+title(main = ( "J. Comparison of Simulation vs. Origin Region"),  line = 1, cex.main = 0.5)
+```
+
+\newpage
+## Linear regression model Residual Plot
+
+```{r d1, fig.cap='Predictor vs. Residuals Plots for Linear Regression Model' }
+
+par(mfrow = c(2,3))
+r <- resid(m3)
+
+clean_data_2 <- raw_data %>%
+  dplyr::select(clswrkr, ind, tenure, prov, sex, age, educ, tothrswk, d09b,h03, whyloss) %>%
+  filter(clswrkr != 9, clswrkr != 8, clswrkr !=7,
+         ind != 99,
+         tenure != 0, tenure != 9,
+         tothrswk != 99,
+         whyloss !=9, whyloss !=0,
+         d09b != 0, d09b != 22,
+         h03 != 97, h03 != 8,h03 !=9
+         ) %>%
+  rename(class_of_work = clswrkr,
+         work_hrs_wk = tothrswk,
+         why_work_lim = d09b,
+         income = h03) 
+
+plot(r~clean_data_2$class_of_work)
+
+plot(r~clean_data_2$prov)
+
+plot(r~clean_data_2$sex)
+
+plot(r~clean_data_2$income)
+
+plot(r~clean_data_2$whyloss)
+```
+
+
+## Other Variable Interactions
+```{r,fig.cap='Why work limitation vs. industry'}
+clean_data%>%
+  ggplot( aes(x=why_work_lim,fill=ind)) +
+   geom_bar(alpha=0.6, binwidth = 5) +
+xlab("") +
+ylab("Number of respondents") +theme_classic()+theme(axis.text.x = element_text(angle = 90))
+
+clean_data%>%
+  ggplot( aes(x=whyloss,fill=ind)) +
+   geom_bar(alpha=0.6, binwidth = 5) +
+xlab("") +
+ylab("Number of respondents") +theme_classic()+theme(axis.text.x = element_text(angle = 90))
+```
+
+
+### income and work limitation reason
+```{r, fig.cap='income and work limitation reason'}
+# income and work limitation reason
+clean_data%>%
+  ggplot( aes(x=income, color=why_work_lim, fill=why_work_lim)) +
+   geom_bar(alpha=0.6, binwidth = 5) +
+   theme(
+   legend.position="none",
+     panel.spacing = unit(0.1, "lines"),
+     strip.text.x = element_text(size = 8))+
+xlab("") +
+ylab("Number of respondents")+theme_classic()+theme(axis.text.x = element_text(angle = 45))
+
+```
+
+### Sex vs. Why work lim
+
+```{r}
+clean_data%>%
+  ggplot( aes(x=why_work_lim, y = '', fill = sex)) +
+   geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Number of respondents") + 
+  theme_classic()+
+  theme(legend.position = "right", axis.text.x = element_text(angle = 90))
+```
+
+\newpage
+
+# References
